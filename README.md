@@ -25,7 +25,7 @@
 ## 文件
 
 - `assets/quiz.html` — 网页本体（单文件，即点即玩）
-- `docs/` — 在线体验入口（GitHub Pages）
+- `index.html` — 在线体验入口（根目录跳转页，GitHub Pages 用）
 - `SKILL.md` — 技能说明（供 WorkBuddy 技能库 / 市场上架）
 - `scripts/` — 打包 / 装本地库 / 推 GitHub / 市场上架说明
 
