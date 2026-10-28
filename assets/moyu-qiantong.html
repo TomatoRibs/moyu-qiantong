@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+
+<meta charset="UTF-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>摸鱼签筒 · 打工人赛博求签局</title>
+<style>
+  :root{
+    --paper:#fbf7ef;
+    --paper2:#f3ebdb;
+    --ink:#2b2535;
+    --ink-soft:#5a5266;
+    --muted:#7a7591;
+    --gold:#bd8c2a;
+    --gold-deep:#9c6f1c;
+    --vermilion:#b23b2e;
+    --jade:#2e7d5b;
+    --line:#e7ddc9;
+    --shadow:0 18px 50px rgba(80,55,30,.16);
+    --good:#2e7d5b;
+    --calm:#b8860b;
+    --warn:#c0772a;
+    --bad:#b23b2e;
+    --weird:#6b5b95;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    background:
+      radial-gradient(1200px 600px at 50% -10%, #fff9ee 0%, rgba(255,249,238,0) 60%),
+      linear-gradient(160deg,#f5eee0 0%,#efe5d3 100%);
+    min-height:100vh;
+    padding:36px 24px 70px;
+    line-height:1.75;
+  }
+  .wrap{max-width:1200px;margin:0 auto;}
+
+  /* 顶栏 */
+  header{text-align:center;margin-bottom:30px;position:relative;}
+  .seal-mark{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:54px;height:54px;border-radius:12px;background:var(--vermilion);
+    color:#fff;font-size:26px;font-weight:800;margin-bottom:12px;
+    box-shadow:0 8px 18px rgba(178,59,46,.35);transform:rotate(-4deg);
+  }
+  .brand{font-size:36px;font-weight:900;letter-spacing:6px;color:var(--ink);}
+  .brand .dot{color:var(--gold);}
+  .tagline{color:var(--ink-soft);font-size:14px;margin-top:8px;letter-spacing:2px;}
+
+  .panel{
+    background:var(--paper);
+    border:1px solid var(--line);
+    border-radius:24px;
+    box-shadow:var(--shadow);
+    padding:30px 26px;
+    position:relative;
+  }
+  .panel::before{
+    content:"";position:absolute;inset:8px;border:1px solid rgba(189,140,42,.18);
+    border-radius:18px;pointer-events:none;
+  }
+
+  /* 桌面双栏：左=抽签，右=记录+关于；FAQ 拉通到底部 */
+  .layout{
+    display:grid;
+    grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);
+    gap:24px;
+    align-items:stretch;
+    margin-bottom:24px;
+  }
+  .col{display:flex;flex-direction:column;gap:24px;min-width:0;}
+  .col .panel{margin-bottom:0;}
+  .col-left .panel{display:flex;flex-direction:column;}
+  .col-left .legend{margin-top:auto;}
+  .col-right .panel:last-child{flex:1;}
+
+  /* 祭台 + 签筒 */
+  .altar{display:flex;flex-direction:column;align-items:center;padding:6px 0 18px;}
+  .tube-wrap{position:relative;width:200px;height:240px;}
+  .tube-wrap.shaking{animation:tubeShake .5s ease-in-out 2;}
+  @keyframes tubeShake{
+    0%,100%{transform:translateX(0) rotate(0);}
+    15%{transform:translateX(-7px) rotate(-3.5deg);}
+    30%{transform:translateX(7px) rotate(3.5deg);}
+    45%{transform:translateX(-6px) rotate(-2.5deg);}
+    60%{transform:translateX(6px) rotate(2.5deg);}
+    75%{transform:translateX(-3px) rotate(-1.2deg);}
+    90%{transform:translateX(2px) rotate(1.2deg);}
+  }
+  .tube{
+    position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+    width:150px;height:200px;border-radius:18px 18px 26px 26px;
+    background:linear-gradient(180deg,#c0392b 0%,#a82d20 55%,#8c2419 100%);
+    box-shadow:inset 0 -18px 34px rgba(0,0,0,.32),0 20px 34px rgba(140,36,25,.32);
+    overflow:hidden;
+  }
+  .tube::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:26px;
+    background:linear-gradient(180deg,#e6b84e,#c9942f);
+    border-radius:18px 18px 0 0;
+  }
+  .tube::after{
+    content:"";position:absolute;top:26px;left:0;right:0;height:2px;
+    background:rgba(255,255,255,.25);
+  }
+  .tube-glow{
+    position:absolute;top:30px;left:18%;width:14px;height:150px;
+    background:linear-gradient(180deg,rgba(255,255,255,.28),rgba(255,255,255,0));
+    border-radius:10px;filter:blur(2px);
+  }
+  .stick{
+    position:absolute;bottom:150px;width:8px;height:74px;border-radius:5px;
+    background:linear-gradient(180deg,#f5e8c8 0%,#e4cf9f 100%);
+    transform-origin:bottom center;transform:rotate(var(--r));
+    box-shadow:0 0 0 1px rgba(160,120,40,.25);
+  }
+  .stick::after{
+    content:"";position:absolute;top:3px;left:50%;transform:translateX(-50%);
+    width:5px;height:9px;background:var(--gold);border-radius:2px;
+  }
+  .stick.pop{animation:stickPop .65s ease-out forwards;}
+  @keyframes stickPop{
+    0%{transform:translateY(0) rotate(var(--r));opacity:1;}
+    35%{transform:translateY(-78px) rotate(calc(var(--r) - 12deg));opacity:1;}
+    100%{transform:translateY(-104px) rotate(calc(var(--r) - 18deg));opacity:0;}
+  }
+  .altar-caption{color:var(--ink-soft);font-size:13px;margin-top:10px;letter-spacing:1px;}
+
+  /* 控制区 */
+  .modes{display:flex;gap:12px;justify-content:center;margin:6px 0 18px;flex-wrap:wrap;}
+  .mode-btn{
+    border:1.5px solid var(--line);background:#fff;color:var(--ink-soft);
+    padding:10px 22px;border-radius:999px;cursor:pointer;font-size:15px;font-weight:700;
+    transition:.2s;letter-spacing:1px;
+  }
+  .mode-btn.active{background:var(--ink);color:#fff;border-color:var(--ink);box-shadow:0 8px 18px rgba(43,37,53,.25);}
+  .draw-btn{
+    display:block;width:100%;border:none;cursor:pointer;
+    background:linear-gradient(135deg,#c0392b,#9c2a1d);
+    color:#fff;font-size:22px;font-weight:900;letter-spacing:8px;
+    padding:20px;border-radius:18px;box-shadow:0 14px 30px rgba(156,42,29,.4);
+    transition:transform .12s,filter .2s;
+  }
+  .draw-btn:active{transform:scale(.985);}
+  .draw-btn:disabled{filter:grayscale(.3) brightness(.95);cursor:default;}
+  .hint{text-align:center;color:var(--ink-soft);font-size:14px;margin-top:14px;min-height:22px;}
+  .session-bar{display:flex;justify-content:space-between;font-size:13px;color:var(--ink-soft);margin-top:16px;border-top:1px dashed var(--line);padding-top:14px;}
+
+  /* 签运图鉴（填补左栏下方，含集签进度） */
+  .legend{margin-top:18px;border-top:1px dashed var(--line);padding-top:16px;}
+  .legend-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;}
+  .legend-progress{height:9px;background:#eee3cd;border-radius:999px;overflow:hidden;margin:2px 0 8px;}
+  .legend-bar{height:100%;width:0%;background:linear-gradient(90deg,#bd8c2a,#c0392b);border-radius:999px;transition:width .6s ease;}
+  .legend-count{font-size:12px;color:var(--ink-soft);margin-bottom:14px;letter-spacing:.5px;}
+  .legend-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 20px;}
+  .legend-item{display:flex;align-items:flex-start;gap:8px;font-size:13px;line-height:1.5;}
+  .legend-item .h-dot{margin-top:6px;}
+  .legend-item .l-name{font-weight:800;color:var(--ink);}
+  .legend-item .l-desc{color:var(--ink-soft);}
+  .legend-item .l-cnt{margin-left:auto;color:var(--muted);font-size:11px;white-space:nowrap;padding-left:6px;}
+
+  /* 历史 */
+  .panel-title{font-size:19px;color:var(--ink);font-weight:800;margin-bottom:6px;letter-spacing:1px;display:flex;align-items:center;gap:10px;}
+  .panel-title::before{content:"";width:6px;height:20px;border-radius:3px;background:var(--vermilion);display:inline-block;}
+  .hist-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;}
+  .clear-btn{font-size:12px;color:var(--muted);background:none;border:none;cursor:pointer;text-decoration:underline;padding:2px 4px;}
+  .clear-btn:hover{color:var(--vermilion);}
+  .hist-list{list-style:none;max-height:300px;overflow:auto;border-radius:12px;}
+  .hist-list li{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--ink);padding:11px 12px;border-bottom:1px solid var(--line);}
+  .hist-list li:last-child{border-bottom:none;}
+  .h-left{display:flex;align-items:center;gap:10px;}
+  .h-dot{width:9px;height:9px;border-radius:50%;display:inline-block;flex:none;}
+  .h-tier{font-weight:800;color:var(--ink);}
+  .h-title{color:var(--ink-soft);}
+  .h-mode{font-size:11px;color:#fff;background:var(--ink-soft);padding:1px 8px;border-radius:999px;margin-left:4px;}
+  .h-time{color:var(--ink-soft);font-size:12px;white-space:nowrap;}
+  .hist-empty{color:var(--ink-soft);font-size:14px;text-align:center;padding:20px;}
+
+  /* 说明与 FAQ */
+  .note-list{margin:4px 0 0 20px;}
+  .note-list li{font-size:14px;color:var(--ink);margin-bottom:10px;line-height:1.8;}
+  .faq-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 40px;margin-top:16px;}
+  .faq-item{margin-bottom:16px;padding-bottom:16px;border-bottom:1px dashed var(--line);}
+  .faq-item .q{font-weight:800;color:var(--ink);font-size:15px;margin-bottom:6px;}
+  .faq-item .a{font-size:14px;color:var(--ink-soft);line-height:1.8;}
+
+  footer{text-align:center;color:var(--ink-soft);font-size:12px;margin-top:34px;line-height:1.9;}
+  .disclaimer{background:var(--paper2);border:1px solid var(--line);border-radius:14px;padding:16px 18px;font-size:12px;color:var(--ink-soft);margin-top:10px;text-align:left;line-height:1.8;}
+
+  /* 弹出的签文卡片（模态，不改变原有布局） */
+  .modal-mask{
+    position:fixed;inset:0;background:rgba(28,22,38,.55);backdrop-filter:blur(5px);
+    display:none;align-items:center;justify-content:center;padding:24px;z-index:1000;overflow:auto;
+  }
+  .modal-mask.show{display:flex;}
+  .modal{position:relative;width:100%;max-width:400px;animation:modalIn .32s cubic-bezier(.2,.8,.3,1);}
+  @keyframes modalIn{from{opacity:0;transform:translateY(18px) scale(.96);}to{opacity:1;transform:none;}}
+  .modal-close{
+    position:absolute;top:-14px;right:-4px;width:38px;height:38px;border-radius:50%;border:none;
+    background:#fff;color:#2b2535;font-size:22px;font-weight:800;cursor:pointer;line-height:1;
+    box-shadow:0 8px 18px rgba(0,0,0,.25);z-index:3;
+  }
+  .poster{
+    background:linear-gradient(180deg,#fdf9ef,#f4e9d3);
+    border:2px solid var(--gold);border-radius:20px;padding:28px 24px 22px;
+    position:relative;box-shadow:0 26px 60px rgba(0,0,0,.35);
+    text-align:center;overflow:hidden;
+  }
+  .poster::before{content:"";position:absolute;inset:8px;border:1px solid rgba(189,140,42,.32);border-radius:14px;pointer-events:none;}
+  .poster-seal{
+    width:64px;height:64px;border-radius:14px;background:var(--vermilion);color:#fff;
+    font-size:30px;font-weight:800;display:flex;align-items:center;justify-content:center;
+    margin:0 auto 12px;transform:rotate(-4deg);box-shadow:0 8px 18px rgba(178,59,46,.35);
+  }
+  .poster-brand{font-size:26px;font-weight:900;letter-spacing:3px;color:var(--ink);}
+  .poster-tag{font-size:13px;color:var(--ink-soft);margin-top:2px;letter-spacing:2px;}
+  .poster-no{font-size:12px;color:var(--muted);margin-top:10px;letter-spacing:1px;}
+  .poster-tier{display:inline-block;font-size:13px;font-weight:800;color:#fff;padding:5px 14px;border-radius:999px;margin-top:14px;}
+  .poster-title{font-size:34px;font-weight:900;color:var(--ink);margin:12px 0 2px;letter-spacing:2px;}
+  .poster-poem{font-size:18px;color:#6a4a2b;white-space:pre-line;line-height:2;margin:8px 0;}
+  .poster-divider{width:140px;height:2px;background:rgba(189,140,42,.6);margin:8px auto 16px;border-radius:2px;}
+  .poster-block{text-align:left;margin-bottom:12px;}
+  .poster-label{font-size:13px;font-weight:800;color:var(--calm);margin-bottom:4px;letter-spacing:1px;}
+  .poster-text{font-size:14px;color:#3a3550;line-height:1.8;}
+  .poster-tool{display:inline-block;font-size:13px;font-weight:800;color:var(--jade);background:#e7f3ec;border:1px solid #bfe0cd;padding:7px 16px;border-radius:10px;margin-top:2px;}
+  .poster-cta{margin-top:16px;font-size:15px;font-weight:800;color:var(--vermilion);line-height:1.6;}
+  .poster-cta2{font-size:13px;color:var(--ink-soft);margin-top:3px;}
+  .poster-foot{font-size:11px;color:#9a93ad;margin-top:14px;line-height:1.7;}
+  .modal-actions{display:flex;gap:10px;margin-top:16px;justify-content:center;flex-wrap:wrap;}
+  .mini-btn{
+    border:1.5px solid var(--line);background:#fff;color:var(--ink);
+    padding:11px 20px;border-radius:12px;cursor:pointer;font-size:14px;font-weight:700;transition:.2s;
+  }
+  .mini-btn:hover{border-color:var(--gold);color:var(--gold-deep);}
+  .mini-btn.primary{background:linear-gradient(135deg,#c0392b,#9c2a1d);color:#fff;border:none;box-shadow:0 10px 22px rgba(156,42,29,.35);}
+  .mini-btn.primary:hover{color:#fff;}
+
+  /* 响应式：窄屏回落为单栏 */
+  @media(max-width:900px){
+    .layout{grid-template-columns:1fr;align-items:start;}
+    .faq-grid{grid-template-columns:1fr;}
+    .legend-grid{grid-template-columns:1fr;}
+    body{padding:28px 14px 60px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="seal-mark"><!--pnid:xcCPsJkTJk6aEa2ZgqOUuc-->籤</div>
+    <div class="brand"><!--pnid:Y6ffMN99sPoghzSc2AoUKz-->摸鱼签筒<span class="dot"><!--pnid:PkA0t9dXNjOdwdc06CX88e-->·</span></div>
+    <div class="tagline"><!--pnid:y6uaC9T9QSEAPlntSEtVqD-->打工人赛博求签局 · 带薪玄学，图一乐</div>
+  </header>
+
+  <div class="layout">
+    <!--pnid:vdxTzFzPdfnwYjM3xUdPR9--><!-- 左栏：抽签 + 图鉴 -->
+    <div class="col col-left">
+      <div class="panel">
+        <div class="altar">
+          <div class="tube-wrap" id="tubeWrap">
+            <div class="tube" id="tube">
+              <div class="tube-glow"></div>
+            </div>
+          </div>
+          <div class="altar-caption" id="altarCaption"><!--pnid:e37NsQ7mZbYfb6ImBUeCAt-->红漆签筒已就位，闭眼想好老板，再摇。</div>
+        </div>
+
+        <div class="modes">
+          <button class="mode-btn active" data-mode="free" onclick="setMode('free')"><!--pnid:2UtBLsWb3uOnrx7h3J0Zg2-->自由抽</button>
+          <button class="mode-btn" data-mode="daily" onclick="setMode('daily')"><!--pnid:s3xbeswKxd8GyAh0koGM3M-->今日签</button>
+        </div>
+
+        <button class="draw-btn" id="drawBtn" onclick="draw()"><!--pnid:klee7J3zZG2oYRi6M1iB1h-->摇 签</button>
+
+        <div class="hint" id="modeHint"><!--pnid:ltbn0Ii4xb4cyphmlOPq9S-->闭上眼睛，想着你的老板（或那点薪水），然后摇一签。</div>
+
+        <div class="session-bar">
+          <span id="sessionInfo"><!--pnid:Q1wAxOs17yj0bvGiGwpCbi-->本次会话已摇 0 次</span>
+          <span id="historyCount"><!--pnid:6EDIRoDsluUNrxvmkRRDaG-->历史 0 笔</span>
+        </div>
+
+        <!--pnid:XD7MvTGz6yd36B6XJ5Vhec--><!-- 签运图鉴 + 集签进度 -->
+        <div class="legend">
+          <div class="legend-head">
+            <div class="panel-title" style="margin-bottom:0"><!--pnid:d1s8AI78WdR9uticYscDU6-->签运图鉴</div>
+            <button class="clear-btn" onclick="resetCollection()"><!--pnid:rntZ09PdTniTrse1KKjcve-->重置</button>
+          </div>
+          <div class="legend-progress"><div class="legend-bar" id="legendBar"></div></div>
+          <div class="legend-count" id="legendCount"><!--pnid:foASaXUxGTF2boSsVp192Z-->已收录 0 / 60 支</div>
+          <div class="legend-grid" id="legendGrid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!--pnid:fkjx1J8LmU5JBM9pYEaHxa--><!-- 右栏：抽签记录 + 关于 -->
+    <div class="col col-right">
+      <div class="panel">
+        <div class="hist-head">
+          <div class="panel-title"><!--pnid:4GIttWct9FjZSfeNQLa7qT-->抽签记录</div>
+          <button class="clear-btn" onclick="clearHistory()"><!--pnid:FveYfeA6pZHuFGc9dNm3Ej-->清空记录</button>
+        </div>
+        <ul class="hist-list" id="histList"></ul>
+      </div>
+
+      <div class="panel">
+        <div class="panel-title"><!--pnid:rZweMltXjEN76VlXHABGX5-->关于这个签筒</div>
+        <ul class="note-list" style="margin-top:14px">
+          <li><b><!--pnid:4MzuC8XjKFquSa2EZb8mvA-->自由抽</b><!--pnid:DOqcgY4PglZm9pNwUdSmjT-->与<b><!--pnid:cDfaxfIGhQFTCr0Qsim3or-->今日签</b><!--pnid:UJQ0AitVeLasnJyd7EWZar-->规则不同：自由抽每次随机抽 60 签之一；今日签用本机随机 ID 拼上当天日期算出固定结果，同一浏览器同一天摇出来都一样。</li>
+          <li><b><!--pnid:Ar4Hhr5ydiJmyedJ9ZsRRt-->签运共八档 60 支</b><!--pnid:pe1H5bKNXBPLKIhUV0BJUo-->：从鸿运到想跑，中间夹着几支说不清吉凶的怪签，对应传统"六十甲子"的签数，集满一轮刚好两个多月。</li>
+          <li><b><!--pnid:xqXJmlvu5upCnRhnlFZwBb-->记录只存本机且有上限</b><!--pnid:mz4Ges5qzx0GJIKQnij35B-->：每次解签后记入本机历史，最新的排在最上面，最多留 30 笔。本次会话的摇签次数在刷新页面后归零；清空记录会删掉这个浏览器里保存的全部抽签历史。</li>
+          <li><b><!--pnid:qKEwnL4Z8ZU8LQ9esjq0G3-->弹出的签可存图转发</b><!--pnid:IrHLNizsTyb6XuRvEvuLcf-->：每次摇完会弹出一张签文卡片，点"保存为图片"即可存成竖版海报，拿去发给朋友。集齐 60 支，纯属娱乐。</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!--pnid:EI4ZouMUL1UvEzPFi6WbOc--><!-- 全宽：常见疑问 -->
+  <div class="panel">
+    <div class="panel-title"><!--pnid:jI1rqvU3tU2ASksU2JQDbb-->常见疑问</div>
+    <div class="faq-grid">
+      <div class="faq-item">
+        <div class="q"><!--pnid:RFOwCH1MC9EpEXkNgsdpiy-->线上求签和庙里求签差在哪？</div>
+        <div class="a"><!--pnid:2Mz6f1WVrp0r0RIk7zgPO0-->庙里要掷筊、要香油钱、运气不好还得听庙公念叨半天；线上点一下就行，免费、无人值班、神明今天请假。准不准从来不是重点，抽完心里舒坦点才是。</div>
+      </div>
+      <div class="faq-item">
+        <div class="q"><!--pnid:i6RyIKiIUV9USxOjfoxUSJ-->抽到的真是"天意"吗？</div>
+        <div class="a"><!--pnid:gXMJChKWuQb0x5LjbO7ZDg-->说实话，值班的这位神明来历不明——可能是个不想加班的程序员假扮的。但你会发现，当你心里早有答案，随便哪支都能解释成你想要的方向，那才是这工具真正干的活。</div>
+      </div>
+      <div class="faq-item">
+        <div class="q"><!--pnid:ljtW9SxCvhYE2IZQtU4gRH-->能一直抽到满意的为止吗？</div>
+        <div class="a"><!--pnid:bwuXpIbHchRu3GmEWeAcJm-->能，神明不生气（祂今天有点累）。但连抽十次还抽不到想要的，建议停一下：你是要答案，还是只要个借口？潜意识在场，神明不在。</div>
+      </div>
+      <div class="faq-item">
+        <div class="q"><!--pnid:RbQnMe5N2ffDk7OcTFQw03-->抽到"想跑签"怎么办？</div>
+        <div class="a"><!--pnid:Q14VEuSPbB167I8QIsjYrw-->第一，深呼吸。第二，记住设计这签的是个和你一样不想上班的人。第三，若真觉得说中了，那不是签灵，是你早知道。顺手更新下简历，比反复求签有用。</div>
+      </div>
+      <div class="faq-item">
+        <div class="q"><!--pnid:nKcklCtuktyEl2y8IbcRqB-->为什么是 60 种签运？</div>
+        <div class="a"><!--pnid:SL9cgvol0B7UqCfEpXDWWM-->取传统求签"六十甲子"的签数，一天一签，集满一轮刚好两个多月，既有庙里签筒的厚重感，也让"集签"有了盼头。从鸿运当头到想跑之心，中间还夹着几支说不清吉凶的怪签，更像真实职场里那些说不清的日子。</div>
+      </div>
+      <div class="faq-item">
+        <div class="q"><!--pnid:FtvhGf5tZSdJljWsbGYnbb-->弹出的签怎么发给别人？</div>
+        <div class="a"><!--pnid:AjT4rv2Zj8ZoIFSqjs0Rcl-->点弹窗里的"保存为图片"，会生成一张竖版签文海报存到本地，直接转发朋友圈或群即可；也可以"复制文字"粘贴分享。所有生成都在本机完成，不联网。</div>
+      </div>
+    </div>
+  </div>
+
+  <footer>
+    <div class="disclaimer"><!--pnid:y8EUwMUuCPirvjb4hkVi67-->
+      免责声明：本签筒是按"求签解签"形式做的自评小玩具，不是标准化心理量表，未经信效度检验，不做任何临床诊断或职业建议。心情糟时，它顶多陪你乐一下。
+    </div>
+    <div style="margin-top:12px"><!--pnid:5XKUJNeafI67ubGaw4PxIL-->摸鱼签筒 · 本地单文件 · 数据不出本机</div>
+  </footer>
+</div>
+
+<!--pnid:XKKOwoRVDORQNz2OLL4P6E--><!-- 弹出的签文卡片 -->
+<div class="modal-mask" id="modalMask" onclick="onMaskClick(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()" title="关闭"><!--pnid:Gyj1AGzk11DBj4GUnfyLBN-->×</button>
+    <div class="poster">
+      <div class="poster-seal"><!--pnid:Njex4QPcPQutzSPHN2GhAI-->籤</div>
+      <div class="poster-brand"><!--pnid:uXBcUHNOQXDQBDKMOGaRzD-->摸鱼签筒</div>
+      <div class="poster-tag"><!--pnid:I5DG7xYSj1z47zl8DafGlF-->打工人赛博求签局</div>
+      <div class="poster-no" id="pNo"></div>
+      <div class="poster-tier" id="pTier"></div>
+      <div class="poster-title" id="pTitle"></div>
+      <div class="poster-poem" id="pPoem"></div>
+      <div class="poster-divider"></div>
+      <div class="poster-block"><div class="poster-label"><!--pnid:Fv3ql5oHL2RB5StJVdRNOv-->解签</div><div class="poster-text" id="pMeaning"></div></div>
+      <div class="poster-block"><div class="poster-label"><!--pnid:PXTL8sdtysiXEWeOgIUEMC-->劝你一句</div><div class="poster-text" id="pAdvice"></div></div>
+      <div><span class="poster-tool" id="pTool"></span></div>
+      <div class="poster-cta"><!--pnid:mBenGlvNZDH4y2OIhuKO5b-->集齐 60 签，召唤带薪休假（并做不到）</div>
+      <div class="poster-cta2"><!--pnid:KeOKtogIXftzFq6OIqQMsJ-->把这张签，转给此刻最想跑路的朋友</div>
+      <div class="poster-foot"><!--pnid:6ipkyrKo3XoadnUJ5rqsK1-->摸鱼签筒 · 本地小玩具 · 图一乐，非心理量表</div>
+    </div>
+    <div class="modal-actions">
+      <button class="mini-btn primary" onclick="savePoster()"><!--pnid:No3O9bf7yZfsVNRGAAcV1y-->保存为图片</button>
+      <button class="mini-btn" onclick="copyResult()"><!--pnid:La49J7sMbopMHXAlLF0nOC-->复制文字</button>
+      <button class="mini-btn" onclick="redraw()"><!--pnid:IXjDm2epQYRaZC3ODRKSel-->再摇一签</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const SIGNS = [
+    // 鸿运签（8）
+    {tier:"鸿运签",tone:"good",title:"前程似锦",poem:"春风得意马蹄疾，\n今日诸事尽相宜。",meaning:"今天运气开挂，提案一次过、bug 自动消，连外卖都提前到。",advice:"趁势把最难的任务推掉一半进度，其余时间理直气壮喘气。",tool:"摸鱼计时器"},
+    {tier:"鸿运签",tone:"good",title:"贵人相助",poem:"暗处有手扶你肩，\n困局忽尔变通途。",meaning:"卡了三天的事，今天有人顺手帮你捅破了。不是你变强，是风向变了。",advice:"记得记人情的账，下次轮到你当贵人的时候别躲。",tool:"人情记账本"},
+    {tier:"鸿运签",tone:"good",title:"小运临门",poem:"半轴好运落肩头，\n小钱小闲皆入兜。",meaning:"抽奖中了、报销过了、摸鱼没被发现，今天财运和懒运双开。",advice:"别飘，把这点好运攒着，留给下周的破事。",tool:"好运储蓄罐"},
+    {tier:"鸿运签",tone:"good",title:"一语中的",poem:"憋了许久那句话，\n今日出口便拍板。",meaning:"憋了久的想法今天说出口，就有人点头通过。",advice:"趁热把一直推不动的申请，今天递上去。",tool:"拍板时刻"},
+    {tier:"鸿运签",tone:"good",title:"峰回路转",poem:"山重水复疑无路，\n转角忽然开了门。",meaning:"以为的死局，今天忽然裂开一条缝。",advice:"别恋战旧路，顺着新缝往外走。",tool:"转场大师"},
+    {tier:"鸿运签",tone:"good",title:"众星捧月",poem:"你一开口众人和，\n方案自带追光落。",meaning:"你今天的点子像自带追光，人人想搭把手。",advice:"把功劳分出去，下次还有人愿意帮你。",tool:"分蛋糕"},
+    {tier:"鸿运签",tone:"good",title:"意外之喜",poem:"没指望的居然成，\n没想要的钱敲门。",meaning:"原本不抱希望的事成了，意外的甜砸中你。",advice:"把惊喜先存起来，别当场嘚瑟。",tool:"惊喜收藏"},
+    {tier:"鸿运签",tone:"good",title:"天时地利",poem:"连电梯都为你停，\n今日全世界让路。",meaning:"今天像被全世界温柔托举，做什么都顺。",advice:"把最硬的那块骨头，留给今天啃。",tool:"啃骨头"},
+    // 顺遂签（8）
+    {tier:"顺遂签",tone:"good",title:"水到渠成",poem:"轻舟已过万重山，\n棘手皆成过指尖。",meaning:"原计划要撕三版的方案，今天一遍过，顺得有点不真实。",advice:"把省下的心力投到真正想做的事上，别又填进加班。",tool:"三件待办"},
+    {tier:"顺遂签",tone:"good",title:"云开见月",poem:"连日阴霾今散尽，\n柳暗花明又一村。",meaning:"上周的烂摊子今天终于收口，悬着的心可以放下了。",advice:"复盘一下是怎么熬过来的，下次别再硬扛这么久。",tool:"复盘小记"},
+    {tier:"顺遂签",tone:"good",title:"左右逢源",poem:"言谈处处逢知己，\n办事桩桩有人应。",meaning:"今天你说的话别人都爱听，跨部门协作丝滑得像开了会员。",advice:"趁气氛好，把一直推不动的申请趁热递上去。",tool:"推进清单"},
+    {tier:"顺遂签",tone:"good",title:"顺水推舟",poem:"风借力时帆自满，\n顺势而为不费力。",meaning:"今天适合借力打力，别什么都自己扛。",advice:"找对人借一把力，比埋头苦干强十倍。",tool:"借力船"},
+    {tier:"顺遂签",tone:"good",title:"井然有序",poem:"千头万绪今日理，\n条条分明不纠缠。",meaning:"乱成一团的事，今天能被你一条条理顺。",advice:"把乱局拆成清单，一条条划掉最解压。",tool:"理线团"},
+    {tier:"顺遂签",tone:"good",title:"稳中有进",poem:"不疾不徐步步稳，\n今日又近目标一寸。",meaning:"没有高光，但日拱一卒，离目标又近了一点。",advice:"别嫌慢，匀速前进比冲刺更能扛到年底。",tool:"进度储蓄"},
+    {tier:"顺遂签",tone:"good",title:"如沐春风",poem:"今日所遇皆善意，\n陌生人都对你笑。",meaning:"今天你遇到的人都格外客气，沟通零阻力。",advice:"把这份善意传下去，回头会绕回你身上。",tool:"递温暖"},
+    {tier:"顺遂签",tone:"good",title:"事半功倍",poem:"一分力气三分功，\n今日效率开了挂。",meaning:"今天效率奇高，同样的活比以前快一截。",advice:"把最难的部分留到今天做，别浪费红利。",tool:"效率红利"},
+    // 安稳签（8）
+    {tier:"安稳签",tone:"calm",title:"风平浪静",poem:"无风无浪亦无波，\n守得工位日日和。",meaning:"系统没崩、需求没改、会议取消了一场，平静就是今天的大奖。",advice:"维持节奏，别手痒去优化不该优化的东西。",tool:"准时下班提醒"},
+    {tier:"安稳签",tone:"calm",title:"颗粒归仓",poem:"日间细碎皆拾起，\n件件有着落处安。",meaning:"一堆拖延的小事今天被你一件件消掉，进度条肉眼可见地长了。",advice:"收尾比开局重要，今天适合做关闭而不是开启。",tool:"收尾清单"},
+    {tier:"安稳签",tone:"calm",title:"身心俱安",poem:"肩颈松了心也宽，\n一杯温水抵万言。",meaning:"今天身体没报警，情绪也稳，是久违的正常一天。",advice:"趁状态好，提前把明天的雷排一遍。",tool:"明日避雷"},
+    {tier:"安稳签",tone:"calm",title:"波澜不惊",poem:"大事化小小事化无，\n今日稳得像老狗。",meaning:"遇到事先深呼吸，你比想象中更能扛事。",advice:"别急着反应，稳半拍再看反而更清楚。",tool:"稳住先生"},
+    {tier:"安稳签",tone:"calm",title:"各安其位",poem:"你站的位置刚好，\n不进不退也不慌。",meaning:"今天的你就待在刚好的位置，不多余也不缺位。",advice:"守好自己一亩三分地，别越界也别让人越界。",tool:"划界尺"},
+    {tier:"安稳签",tone:"calm",title:"岁月静好",poem:"一杯茶来一张椅，\n正好偷得半日闲。",meaning:"今天适合把节奏调低，慢不是罪，是充电。",advice:"把速度降半格，反而看得更清楚。",tool:"慢半拍"},
+    {tier:"安稳签",tone:"calm",title:"平安是福",poem:"无灾无难过一日，\n已是打工人的胜利。",meaning:"没出事、没挨骂、没背锅，今天已经赢了一半。",advice:"别小看平淡，平淡的日子其实很难得。",tool:"知足常乐"},
+    {tier:"安稳签",tone:"calm",title:"按部就班",poem:"不搞花活不整事，\n按着计划走就赢。",meaning:"今天适合执行，不适合头脑一热的创新。",advice:"照章办事，别给自己加戏。",tool:"照章办事"},
+    // 小满签（8）
+    {tier:"小满签",tone:"calm",title:"微光可亲",poem:"半窗日色半窗闲，\n小事里头见清欢。",meaning:"午饭意外好吃、工位晒到太阳、下班没被拦，普通里藏着甜。",advice:"记一件今天的小好事，攒着抵御周一。",tool:"今日小确幸"},
+    {tier:"小满签",tone:"calm",title:"闲中得趣",poem:"偷得浮生半刻闲，\n一杯清茶胜仙丹。",meaning:"摸鱼摸得没心虚，因为正事都做完了，这种理直气壮最难得。",advice:"把这段松弛存进记忆，忙起来的时候拿出来用。",tool:"带薪发呆"},
+    {tier:"小满签",tone:"calm",title:"慢工出活",poem:"不追速度追成色，\n今日你比昨日细。",meaning:"今天做的东西比平时更经得起看，慢一点但拿得出手。",advice:"把这份细致留给真正重要的交付。",tool:"打磨匠"},
+    {tier:"小满签",tone:"calm",title:"小有所成",poem:"不必惊天又动地，\n今日也往前一寸。",meaning:"没什么大场面，但你也确确实实往前挪了一寸。",advice:"给自己记一功，别总盯着没做完的。",tool:"记功簿"},
+    {tier:"小满签",tone:"calm",title:"苦中作乐",poem:"再忙也偷一丝甜，\n苦日子要自己加糖。",meaning:"再紧的日子里，今天也让你抠出一点乐子。",advice:"别把自己逼太紧，会喘气才会走得远。",tool:"自我加糖"},
+    {tier:"小满签",tone:"calm",title:"知足小满",poem:"碗里有饭杯有茶，\n今天要求不高刚好。",meaning:"欲望调到刚好的刻度，快乐反而满了。",advice:"把期待降一格，满足感就上一格。",tool:"降噪键"},
+    {tier:"小满签",tone:"calm",title:"恰好合身",poem:"今日状态像衬衫，\n不松不紧正合身。",meaning:"今天的精力、心情、节奏都刚刚好，像合身的衬衫。",advice:"趁合身，把该做的顺手做掉。",tool:"合身日"},
+    {tier:"小满签",tone:"calm",title:"灯火可亲",poem:"下班时天还没黑，\n路灯刚亮风也柔。",meaning:"今天能赶上晚高峰前的安静，天还没黑透就到家。",advice:"早点回家，今晚不加班，犒劳自己一顿好的。",tool:"准时溜"},
+    // 佛系签（7）
+    {tier:"佛系签",tone:"calm",title:"爱咋咋地",poem:"爱咋咋地随风去，\n半卷半舒任东西。",meaning:"提不起劲但也没崩，像手机剩百分之二十的电，能撑但别开太多后台。",advice:"降低期待，能交差就行，把能量留给在意的事。",tool:"能量管理"},
+    {tier:"佛系签",tone:"calm",title:"随遇而安",poem:"来什么活便接什么，\n不强求也不推脱。",meaning:"今天你像个旁观者，事情流过你，但不太往心里去。",advice:"适度抽离是保护，但别连自己的事也一起抽离了。",tool:"抽离计时"},
+    {tier:"佛系签",tone:"calm",title:"且过且看",poem:"不争先来不恐后，\n云在青天水在瓶。",meaning:"周围都在卷，你选择看戏，不是躺平，是今天只想当观众。",advice:"看戏可以，记得戏散了还得自己走回家。",tool:"观众模式"},
+    {tier:"佛系签",tone:"calm",title:"顺其自然",poem:"强扭的瓜它不甜，\n今天别跟自己较劲。",meaning:"今天越用力越别扭，松手反而顺了。",advice:"该来的会来，不该来的别强求。",tool:"随缘签"},
+    {tier:"佛系签",tone:"calm",title:"不悲不喜",poem:"没有大喜无大悲，\n今日情绪一条平线。",meaning:"情绪持平，没什么能掀起你心里的波澜。",advice:"持平也是好状态，别找事去打破它。",tool:"平仓观望"},
+    {tier:"佛系签",tone:"calm",title:"无为而治",poem:"不折腾才是智慧，\n今天越动越容易错。",meaning:"今天「多做多错」，不动反而保平安。",advice:"能不动就不动，静观其变最省力。",tool:"静音键"},
+    {tier:"佛系签",tone:"calm",title:"得过且过",poem:"能过一天算一天，\n今天目标是没搞砸。",meaning:"今天的最高成就，就是把一天平平安安混过去。",advice:"别自责，大家都一样，及格线也是线。",tool:"及格线"},
+    // 水逆签（7）
+    {tier:"水逆签",tone:"warn",title:"诸事不宜",poem:"乌云偏往头上飘，\n错漏常随指尖绕。",meaning:"今天 bug 爱找你、消息爱撤回、咖啡爱洒，水逆点名了你。",advice:"重要决定推迟，沟通留痕，别在情绪头上回消息。",tool:"冷静十秒"},
+    {tier:"水逆签",tone:"warn",title:"口舌之争",poem:"一句话出风波起，\n少言少语祸自消。",meaning:"今天容易说错话、被误解、卷入本不关你的争执。",advice:"把「收到」「好的」设为今日默认回复，少输出观点。",tool:"沉默模式"},
+    {tier:"水逆签",tone:"warn",title:"破财小耗",poem:"小事破费接连至，\n钱包瘦了一圈回。",meaning:"打车被绕路、午饭涨价、会员自动续费，今天钱像长了腿。",advice:"今晚别下单，把购物车晾一夜再说。",tool:"剁手冷静"},
+    {tier:"水逆签",tone:"warn",title:"计划生变",poem:"排好的表全打乱，\n变故永远比计划多。",meaning:"今天的安排随时可能被推翻，别把日程排太满。",advice:"留两成缓冲，接住突如其中来的变化。",tool:"缓冲垫"},
+    {tier:"水逆签",tone:"warn",title:"小人作梗",poem:"背后总有小绊子，\n明枪易躲暗箭防。",meaning:"今天有人在背后使小动作，防不胜防。",advice:"留好证据，别当场撕，秋后算账更稳。",tool:"留证据"},
+    {tier:"水逆签",tone:"warn",title:"水逆缠身",poem:"喝口凉水都塞牙，\n今天仿佛被针对。",meaning:"今天诸事别扭，像被谁悄悄按了困难键。",advice:"别怀疑人生，是磁场的事，撑过今天就好。",tool:"撑住"},
+    {tier:"水逆签",tone:"warn",title:"事倍功半",poem:"一分力气半分功，\n今日效率掉线中。",meaning:"今天花十分力气只出五分活，越急越乱。",advice:"别硬刚，挑最省力的小事先做着。",tool:"省电模式"},
+    // 想跑签（7）
+    {tier:"想跑签",tone:"bad",title:"心已远走",poem:"心似脱缰欲远走，\n此间方寸难久留。",meaning:"坐不住了，开会走神想的是下家。不是矫情，是身体在报警。",advice:"别裸辞，先更新简历、悄悄看机会，把不满写下来看清根源。",tool:"简历体检"},
+    {tier:"想跑签",tone:"bad",title:"倦怠缠身",poem:"千般催促懒抬头，\n只想关机躲世间。",meaning:"不是懒，是耗干了，连刷手机都觉得累，只想原地消失半天。",advice:"今天允许自己只做最低限度，先充电再谈野心。",tool:"充电半天"},
+    {tier:"想跑签",tone:"bad",title:"四面楚歌",poem:"活儿压顶人亦倦，\n前狼后虎两为难。",meaning:"需求堆成山、还有人在催，里外不是人，今天你成了出气筒。",advice:"先把最会咬人的那件事单独拎出来解决，其余往后排。",tool:"拆弹清单"},
+    {tier:"想跑签",tone:"bad",title:"归心似箭",poem:"人坐在工位上坐，\n魂已经到家门口。",meaning:"今天每一分钟都是煎熬，眼睛一直瞟向门口。",advice:"把必须做的压缩到最少，到点就撤。",tool:"早点撤"},
+    {tier:"想跑签",tone:"bad",title:"意难平",poem:"一肚子委屈没人懂，\n今天特别想摔键盘。",meaning:"今天心里堵得慌，觉得全世界都不理解你。",advice:"把委屈写下来，写完撕掉，别发到大群里。",tool:"树洞纸"},
+    {tier:"想跑签",tone:"bad",title:"此非久留",poem:"心里有个声音说，\n这里不是你久留处。",meaning:"那个「该走了」的念头今天格外响，压都压不住。",advice:"别冲动，先算笔账：存款够你撑几个月。",tool:"算账本"},
+    {tier:"想跑签",tone:"bad",title:"心累大于身累",poem:"活不多但心好累，\n情绪账户已透支。",meaning:"身体不忙，心却累到不想说话，情绪账户见底了。",advice:"关掉工作群通知，世界立刻安静一半。",tool:"静音键"},
+    // 玄学签（7）
+    {tier:"玄学签",tone:"weird",title:"神明摸鱼",poem:"神明今日也摸鱼，\n签筒空空无一语。",meaning:"今天签筒罢工了，可能服务器打了个盹，也可能神明自己在带薪发呆。",advice:"别较真，去接杯水伸个懒腰，回来再摇一次。",tool:"茶水间遛弯"},
+    {tier:"玄学签",tone:"weird",title:"签纸打结",poem:"抽出的签打了结，\n吉凶混作一团写。",meaning:"今天的签说不清是福是祸，像周一的天气，半晴半雨。",advice:"这种日子别做重大决定，随它去，明天再说。",tool:"搁置一天"},
+    {tier:"玄学签",tone:"weird",title:"反向显灵",poem:"明明求顺偏遇阻，\n塞翁失马未可知。",meaning:"今天越想顺越不顺，但埋下的麻烦说不定哪天变契机。",advice:"把今天的倒霉当素材攒着，以后写段子用得上。",tool:"段子素材"},
+    {tier:"玄学签",tone:"weird",title:"天机错乱",poem:"连神明都没排好，\n混乱是今日主旋律。",meaning:"今天的运势连编制它的都没排明白，乱是常态。",advice:"随波逐流就好，今天别做规划。",tool:"随波流"},
+    {tier:"玄学签",tone:"weird",title:"时空乱流",poem:"一天过成一周长，\n时间被谁拉了丝。",meaning:"今天时间感错乱，一会儿飞快一会儿度日如年。",advice:"找件具体的小事做，把飘走的时间抓回来。",tool:"抓时间"},
+    {tier:"玄学签",tone:"weird",title:"量子签运",poem:"没打开前吉也凶，\n全看你往哪解读。",meaning:"这支签在你看它之前，既是吉也是凶，薛定谔的签。",advice:"心态是开关，你往好处想它就往好处走。",tool:"心态开关"},
+    {tier:"玄学签",tone:"weird",title:"神明代打",poem:"值班的是临时工，\n解得含含糊糊其辞。",meaning:"今天解签的是临时工，说得模棱两可，别太当真。",advice:"当个乐子就行，别拿它当人生指南。",tool:"乐子人"}
+  ];
+
+  const TIERS = [
+    {name:"鸿运签",color:"#2e7d5b",desc:"运气开挂，趁势而上"},
+    {name:"顺遂签",color:"#2e7d5b",desc:"水到渠成，丝滑过关"},
+    {name:"安稳签",color:"#b8860b",desc:"风平浪静，守常即福"},
+    {name:"小满签",color:"#b8860b",desc:"微光可亲，小确幸日"},
+    {name:"佛系签",color:"#b8860b",desc:"爱咋咋地，能交差就行"},
+    {name:"水逆签",color:"#c0772a",desc:"诸事不宜，宜静不宜动"},
+    {name:"想跑签",color:"#b23b2e",desc:"心已远走，先更新简历"},
+    {name:"玄学签",color:"#6b5b95",desc:"神明摸鱼，纯属图一乐"}
+  ];
+
+  const TOTAL = SIGNS.length;
+  const TONE_HEX = {good:"#2e7d5b",calm:"#b8860b",warn:"#c0772a",bad:"#b23b2e",weird:"#6b5b95"};
+  const STORAGE_KEY = "moyu_qian_history_v2";
+  const UID_KEY = "moyu_qian_uid_v2";
+  const COLLECT_KEY = "moyu_qian_collected_v2";
+
+  let currentMode = "free";
+  let sessionDraws = 0;
+  let history = [];
+  let collected = new Set();
+  let isDrawing = false;
+  let sticks = [];
+  let currentSign = null;
+  let currentSignIndex = 0;
+
+  (function buildSticks(){
+    const tube = document.getElementById("tube");
+    const N = 22;
+    for(let i=0;i<N;i++){
+      const s = document.createElement("div");
+      s.className = "stick";
+      const left = 18 + i * (114 / (N-1)) + (Math.random()*4-2);
+      const h = 64 + Math.random()*16;
+      const r = (Math.random()*22 - 11);
+      s.style.left = left + "px";
+      s.style.height = h + "px";
+      s.style.setProperty("--r", r.toFixed(1) + "deg");
+      s.style.zIndex = String(10 + i);
+      tube.appendChild(s);
+      sticks.push(s);
+    }
+  })();
+
+  function getUID(){
+    let uid = localStorage.getItem(UID_KEY);
+    if(!uid){
+      uid = "u" + Math.random().toString(36).slice(2) + Date.now().toString(36);
+      localStorage.setItem(UID_KEY, uid);
+    }
+    return uid;
+  }
+  function simpleHash(s){
+    let h = 0;
+    for(let i=0;i<s.length;i++){ h = (h*31 + s.charCodeAt(i)) >>> 0; }
+    return h;
+  }
+  function getDailySign(){
+    const today = new Date().toISOString().slice(0,10);
+    const idx = simpleHash(getUID() + today) % SIGNS.length;
+    return {sign:SIGNS[idx], index:idx};
+  }
+  function getFreeSign(){
+    const idx = Math.floor(Math.random()*SIGNS.length);
+    return {sign:SIGNS[idx], index:idx};
+  }
+
+  function setMode(mode){
+    currentMode = mode;
+    document.querySelectorAll(".mode-btn").forEach(b=>{
+      b.classList.toggle("active", b.dataset.mode === mode);
+    });
+    const hint = document.getElementById("modeHint");
+    const btn = document.getElementById("drawBtn");
+    if(mode === "daily"){
+      hint.textContent = "今日签：用本机 ID + 今天日期算出的固定结果，同一天摇出来都一样。";
+      btn.textContent = "摇今日签";
+    }else{
+      hint.textContent = "闭上眼睛，想着你的老板（或那点薪水），然后摇一签。";
+      btn.textContent = "摇 签";
+    }
+  }
+
+  function draw(){
+    if(isDrawing) return;
+    isDrawing = true;
+    const btn = document.getElementById("drawBtn");
+    const cap = document.getElementById("altarCaption");
+    btn.disabled = true;
+    cap.textContent = "签筒摇晃中……";
+
+    const wrap = document.getElementById("tubeWrap");
+    wrap.classList.add("shaking");
+
+    setTimeout(()=>{
+      const stick = sticks[Math.floor(sticks.length/2)] || sticks[0];
+      stick.classList.add("pop");
+      cap.textContent = "一支签飞了出来……";
+    }, 520);
+
+    setTimeout(()=>{
+      const res = currentMode === "daily" ? getDailySign() : getFreeSign();
+      const sign = res.sign;
+      currentSign = sign;
+      currentSignIndex = res.index;
+      collected.add(res.index);
+      localStorage.setItem(COLLECT_KEY, JSON.stringify([...collected]));
+      sessionDraws++;
+      const now = new Date();
+      const record = {
+        tier: sign.tier, title: sign.title, tone: sign.tone,
+        time: now.toLocaleString("zh-CN",{month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}),
+        mode: currentMode === "daily" ? "今日" : "自由"
+      };
+      history.unshift(record);
+      if(history.length > 30) history = history.slice(0,30);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+
+      fillPoster(sign, res.index);
+      updateLegend();
+      openModal();
+
+      document.getElementById("sessionInfo").textContent = "本次会话已摇 " + sessionDraws + " 次";
+      document.getElementById("historyCount").textContent = "历史 " + history.length + " 笔";
+      renderHistory();
+
+      btn.disabled = false;
+      isDrawing = false;
+      cap.textContent = "红漆签筒已就位，闭眼想好老板，再摇。";
+      stick.classList.remove("pop");
+      wrap.classList.remove("shaking");
+    }, 1180);
+  }
+
+  function fillPoster(sign, index){
+    document.getElementById("pTier").textContent = sign.tier;
+    document.getElementById("pTier").style.background = TONE_HEX[sign.tone];
+    document.getElementById("pTitle").textContent = sign.title;
+    document.getElementById("pPoem").textContent = sign.poem;
+    document.getElementById("pMeaning").textContent = sign.meaning;
+    document.getElementById("pAdvice").textContent = sign.advice;
+    document.getElementById("pTool").textContent = "今日宜：" + sign.tool;
+    const d = new Date();
+    document.getElementById("pNo").textContent =
+      d.getFullYear()+"."+(d.getMonth()+1)+"."+d.getDate()+"  ·  第 "+(index+1)+" / "+TOTAL+" 签";
+  }
+
+  function buildLegend(){
+    const grid = document.getElementById("legendGrid");
+    grid.innerHTML = "";
+    TIERS.forEach(t=>{
+      const totalOfTier = SIGNS.filter(s=>s.tier===t.name).length;
+      const div = document.createElement("div");
+      div.className = "legend-item";
+      div.innerHTML =
+        '<span class="h-dot" style="background:'+t.color+'"></span>' +
+        '<span><span class="l-name">'+t.name+'</span> <span class="l-desc">'+t.desc+'</span></span>' +
+        '<span class="l-cnt" data-tier="'+t.name+'">0/'+totalOfTier+'</span>';
+      grid.appendChild(div);
+    });
+  }
+  function updateLegend(){
+    const pct = Math.round(collected.size / TOTAL * 100);
+    document.getElementById("legendBar").style.width = pct + "%";
+    document.getElementById("legendCount").textContent = "已收录 " + collected.size + " / " + TOTAL + " 支，集满召唤带薪休假（并不能）";
+    TIERS.forEach(t=>{
+      const got = SIGNS.filter((s,i)=>s.tier===t.name && collected.has(i)).length;
+      const total = SIGNS.filter(s=>s.tier===t.name).length;
+      const el = document.querySelector('.l-cnt[data-tier="'+t.name+'"]');
+      if(el) el.textContent = got + "/" + total;
+    });
+  }
+  function resetCollection(){
+    if(!confirm("重置图鉴收集进度？已收录的签会清空（不影响抽签记录）。")) return;
+    collected = new Set();
+    localStorage.removeItem(COLLECT_KEY);
+    updateLegend();
+  }
+
+  function openModal(){ document.getElementById("modalMask").classList.add("show"); }
+  function closeModal(){ document.getElementById("modalMask").classList.remove("show"); }
+  function onMaskClick(e){ if(e.target.id === "modalMask") closeModal(); }
+  function redraw(){ closeModal(); setTimeout(()=>draw(), 140); }
+  document.addEventListener("keydown", e=>{ if(e.key === "Escape") closeModal(); });
+
+  function renderHistory(){
+    const list = document.getElementById("histList");
+    list.innerHTML = "";
+    if(history.length === 0){
+      list.innerHTML = '<div class="hist-empty">还没有抽签记录，摇一签试试？</div>';
+      return;
+    }
+    history.forEach(h=>{
+      const li = document.createElement("li");
+      li.innerHTML =
+        '<span class="h-left">' +
+          '<span class="h-dot" style="background:'+TONE_HEX[h.tone]+'"></span>' +
+          '<span><span class="h-tier">'+h.tier+'</span> <span class="h-title">'+h.title+'</span>' +
+          '<span class="h-mode">'+h.mode+'</span></span>' +
+        '</span>' +
+        '<span class="h-time">'+h.time+'</span>';
+      list.appendChild(li);
+    });
+  }
+
+  function clearHistory(){
+    if(!confirm("确定清空本机全部抽签记录？此操作不可恢复。")) return;
+    history = [];
+    localStorage.removeItem(STORAGE_KEY);
+    document.getElementById("historyCount").textContent = "历史 0 笔";
+    renderHistory();
+  }
+
+  function copyResult(){
+    if(!currentSign){ alert("先摇一签再复制哦～"); return; }
+    const d = new Date();
+    const text =
+      "【摸鱼签筒】"+currentSign.tier+" · "+currentSign.title+
+      "\n"+d.getFullYear()+"."+(d.getMonth()+1)+"."+d.getDate()+"  第 "+(currentSignIndex+1)+" / "+TOTAL+" 签"+
+      "\n"+currentSign.poem.replace(/\n/g," ")+
+      "\n解签："+currentSign.meaning+
+      "\n劝你一句："+currentSign.advice+
+      "\n今日宜："+currentSign.tool+
+      "\n集齐 "+TOTAL+" 签，召唤带薪休假（并做不到）";
+    navigator.clipboard.writeText(text).then(()=>{
+      alert("已复制，去粘贴给朋友乐一下～");
+    }).catch(()=>{
+      alert("复制失败，请手动选择文字复制。");
+    });
+  }
+
+  // —— 生成可保存的竖版签文海报（Canvas，纯本地）——
+  function roundRect(ctx,x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo(x+r,y);
+    ctx.arcTo(x+w,y,x+w,y+h,r);
+    ctx.arcTo(x+w,y+h,x,y+h,r);
+    ctx.arcTo(x,y+h,x,y,r);
+    ctx.arcTo(x,y,x+w,y,r);
+    ctx.closePath();
+  }
+  function wrapDraw(ctx,text,x,y,maxW,lh){
+    let line="";
+    for(const ch of text){
+      if(line && ctx.measureText(line+ch).width > maxW){ ctx.fillText(line,x,y); y+=lh; line=ch; }
+      else line+=ch;
+    }
+    if(line){ ctx.fillText(line,x,y); y+=lh; }
+    return y;
+  }
+  function buildPosterCanvas(sign, index){
+    const W=750, H=1420;
+    const cv=document.createElement("canvas"); cv.width=W; cv.height=H;
+    const ctx=cv.getContext("2d");
+    const FONT='"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+    ctx.textBaseline="top";
+    // 背景
+    const g=ctx.createLinearGradient(0,0,0,H);
+    g.addColorStop(0,"#fdf9ef"); g.addColorStop(1,"#f3e7cf");
+    ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+    // 背景大字
+    ctx.save(); ctx.globalAlpha=0.05; ctx.fillStyle="#2b2535";
+    ctx.font='700 520px '+FONT; ctx.textAlign="center"; ctx.fillText("籤", W/2, H*0.52);
+    ctx.restore();
+    // 双线边框
+    ctx.strokeStyle="#bd8c2a"; ctx.lineWidth=3; roundRect(ctx,30,30,W-60,H-60,26); ctx.stroke();
+    ctx.strokeStyle="rgba(189,140,42,.32)"; ctx.lineWidth=1.5; roundRect(ctx,48,48,W-96,H-96,18); ctx.stroke();
+
+    let y=104;
+    ctx.textAlign="center";
+    // 印章
+    const seal=78;
+    ctx.fillStyle="#b23b2e"; roundRect(ctx, W/2-seal/2, y, seal, seal, 15); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.font='800 44px '+FONT; ctx.fillText("籤", W/2, y+(seal-44)/2);
+    y+=seal+30;
+    // 品牌
+    ctx.fillStyle="#2b2535"; ctx.font='900 46px '+FONT; ctx.fillText("摸鱼签筒", W/2, y); y+=46;
+    ctx.fillStyle="#5a5266"; ctx.font='400 24px '+FONT; ctx.fillText("打工人赛博求签局", W/2, y); y+=42;
+    // 日期 + 签号
+    const d=new Date();
+    ctx.fillStyle="#7a7591"; ctx.font='400 22px '+FONT;
+    ctx.fillText(d.getFullYear()+"."+(d.getMonth()+1)+"."+d.getDate()+"    ·    第 "+(index+1)+" / "+TOTAL+" 签", W/2, y);
+    y+=48;
+    // 运势章
+    const color=TONE_HEX[sign.tone];
+    ctx.font='800 26px '+FONT;
+    const tw=ctx.measureText(sign.tier).width+48;
+    ctx.fillStyle=color; roundRect(ctx,(W-tw)/2,y,tw,54,27); ctx.fill();
+    ctx.fillStyle="#fff"; ctx.fillText(sign.tier, W/2, y+13);
+    y+=54+40;
+    // 大标题
+    ctx.fillStyle="#2b2535"; ctx.font='900 64px '+FONT; ctx.fillText(sign.title, W/2, y); y+=74;
+    // 签诗
+    ctx.fillStyle="#6a4a2b"; ctx.font='700 40px '+FONT;
+    sign.poem.split("\n").forEach(line=>{ ctx.fillText(line, W/2, y); y+=56; });
+    y+=10;
+    // 分隔
+    ctx.strokeStyle="rgba(189,140,42,.6)"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(W/2-70,y); ctx.lineTo(W/2+70,y); ctx.stroke();
+    y+=40;
+    // 解签
+    ctx.textAlign="left";
+    ctx.fillStyle="#b8860b"; ctx.font='800 24px '+FONT; ctx.fillText("解签", 84, y); y+=40;
+    ctx.fillStyle="#3a3550"; ctx.font='400 28px '+FONT;
+    y=wrapDraw(ctx, sign.meaning, 84, y, W-168, 44); y+=16;
+    // 劝你一句
+    ctx.fillStyle="#b8860b"; ctx.font='800 24px '+FONT; ctx.fillText("劝你一句", 84, y); y+=40;
+    ctx.fillStyle="#3a3550"; ctx.font='400 28px '+FONT;
+    y=wrapDraw(ctx, sign.advice, 84, y, W-168, 44); y+=22;
+    // 今日宜
+    const tag="今日宜："+sign.tool;
+    ctx.font='800 24px '+FONT;
+    const tgw=ctx.measureText(tag).width+40;
+    ctx.fillStyle="#e7f3ec"; roundRect(ctx,84,y,tgw,50,12); ctx.fill();
+    ctx.strokeStyle="#bfe0cd"; ctx.lineWidth=1.5; roundRect(ctx,84,y,tgw,50,12); ctx.stroke();
+    ctx.fillStyle="#2e7d5b"; ctx.fillText(tag, 84+20, y+12);
+    y+=50+46;
+    // 裂变文案
+    ctx.textAlign="center";
+    ctx.fillStyle="#b23b2e"; ctx.font='800 30px '+FONT;
+    ctx.fillText("集齐 "+TOTAL+" 签，召唤带薪休假（并做不到）", W/2, y); y+=44;
+    ctx.fillStyle="#5a5266"; ctx.font='400 26px '+FONT;
+    ctx.fillText("把这张签，转给此刻最想跑路的朋友", W/2, y);
+    // 页脚
+    ctx.fillStyle="#9a93ad"; ctx.font='400 20px '+FONT;
+    ctx.fillText("摸鱼签筒 · 本地小玩具 · 图一乐，非心理量表", W/2, H-74);
+    return cv;
+  }
+  function savePoster(){
+    if(!currentSign){ alert("先摇一签再保存哦～"); return; }
+    try{
+      const cv=buildPosterCanvas(currentSign, currentSignIndex);
+      cv.toBlob(blob=>{
+        if(!blob){ alert("生成图片失败，换个浏览器试试。"); return; }
+        const a=document.createElement("a");
+        a.href=URL.createObjectURL(blob);
+        a.download="摸鱼签筒-"+currentSign.tier+"-"+currentSign.title+".png";
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(()=>URL.revokeObjectURL(a.href), 1500);
+        alert("签文海报已保存，去发给朋友吧～");
+      }, "image/png");
+    }catch(err){
+      alert("生成图片失败：" + err.message);
+    }
+  }
+
+  // 初始化
+  try{ history = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); }catch(e){ history = []; }
+  try{ collected = new Set(JSON.parse(localStorage.getItem(COLLECT_KEY) || "[]")); }catch(e){ collected = new Set(); }
+  document.getElementById("historyCount").textContent = "历史 " + history.length + " 笔";
+  buildLegend();
+  updateLegend();
+  renderHistory();
+</script>
+</body>
+</html>
