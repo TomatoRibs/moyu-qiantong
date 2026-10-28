@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""导出前内部自检：扫描交付物（zip 或目录）里的全部文本，命中禁词即 FAIL。
+"""导出前内部自检：禁词 + frontmatter 合法性 + 命名，三项一起过，命中即 FAIL。
 
 用法：
     python preflight_check.py <zip或目录> [<zip或目录> ...]
@@ -9,12 +9,19 @@
     1 = 有命中（禁止导出，先改再跑）
     2 = 用法错误
 
+检查项（任何一项不过都禁止导出）：
+    1. 禁词：读文件内容而不是只看文件名；zip 会逐条解压读取。
+    2. frontmatter：必须是合法 YAML，且必需字段齐全、值不被 YAML 悄悄吃掉。
+       —— 市场解析失败最常见的原因是"未加引号的值里出现冒号+空格"，
+          例如 `description_en: a toy: pick ...`，YAML 会把 `pick` 当成新键，
+          整包报 `mapping values are not allowed in this context`，链接口都进不去。
+       —— 字段既允许写在顶层，也允许写在 `metadata:` 块内；校验前会先把顶层
+          metadata 展平到一层再查完整性（顶层优先），两种写法一视同仁。
+    3. 命名：SKILL.md 的 name 必须是 ASCII kebab-case
+       （^[a-z0-9]+(-[a-z0-9]+)*$）。GitHub 仓库名与 WorkBuddy 市场标识名共用这一个值。
+
 规则：
-    - 读内容而不是只看文件名；zip 会逐条解压读取。
     - 命中即判 FAIL，不做自动放行；确属误报必须人工改写句子绕开，不得加白名单。
-    - 同时校验包里 SKILL.md 的 name 是否为 ASCII kebab-case
-      （^[a-z0-9]+(-[a-z0-9]+)*$）。GitHub 仓库名与 WorkBuddy 市场标识名共用这一个值，
-      填中文/大写会被市场打回（报错原文："仅支持小写字母、数字和连字符（kebab-case）"）。
 """
 import sys
 import os
@@ -116,29 +123,192 @@ def scan(path):
     return hits
 
 
+# ---------------------------------------------------------------------------
+# frontmatter 校验
+# ---------------------------------------------------------------------------
+
 # name 必须是 ASCII kebab-case：小写字母/数字，单个连字符分隔，无中文、无大写、无下划线、无首尾连字符。
 # GitHub 仓库名与 WorkBuddy 市场标识名共用这一个值，所以按严的来。
 KEBAB = re.compile(r"^[a-z0-9]+(-[a-z0-9]+)*$")
 
+# 必需字段：缺了市场表单填不满，直接判 FAIL。
+REQUIRED_KEYS = ("name", "display_name", "description")
+# 建议字段：缺了不拦，但会提醒。
+SUGGESTED_KEYS = ("display_name_en", "description_zh", "description_en", "category", "version", "author", "license")
 
-def check_names(path):
-    """校验包里每个 SKILL.md 的 frontmatter name 是否合规，返回问题列表。"""
+KEY_LINE = re.compile(r"^([A-Za-z_][A-Za-z0-9_-]*):(?:\s+(.*))?$")
+
+
+def split_frontmatter(txt):
+    """取出 --- 之间的 frontmatter 文本。返回 (fm, err)。
+
+    不用 str.split('---')：正文里的分隔线会把切分点弄错。
+    """
+    s = txt.lstrip("\ufeff")
+    lines = s.splitlines()
+    if not lines or lines[0].strip() != "---":
+        return None, "缺少 frontmatter（文件第一行必须是 ---）"
+    for i in range(1, len(lines)):
+        if lines[i].strip() == "---":
+            return "\n".join(lines[1:i]), None
+    return None, "frontmatter 未闭合（找不到第二行 ---）"
+
+
+def fallback_scan(fm):
+    """不依赖 PyYAML 的严格扫描，专抓"未加引号的值里带冒号+空格"这类坑。
+
+    返回 [(行号, 说明)]，行号以 frontmatter 第一行为 1（与市场报错口径一致）。
+    """
     problems = []
+    seen = {}
+    nested_seen = {}          # metadata: 块内的键，供 flatten 后查字段用
+    block_scalar = False
+    nested_ok = False
+    for i, line in enumerate(fm.splitlines(), 1):
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        indent = len(line) - len(line.lstrip(" "))
+
+        if block_scalar:
+            if indent > 0:
+                continue
+            block_scalar = False
+
+        if indent > 0:
+            if nested_ok and (line.lstrip().startswith("-") or KEY_LINE.match(line.strip())):
+                m2 = KEY_LINE.match(line.strip())
+                if m2 and m2.group(1) not in nested_seen:
+                    nested_seen[m2.group(1)] = i
+                continue
+            problems.append((i, "缩进错误：该行有缩进，但上一行不是块标量（>- / |）也不是空值键"))
+            continue
+
+        m = KEY_LINE.match(line)
+        if not m:
+            problems.append((i, "不是合法的「键: 值」行，YAML 无法解析"))
+            continue
+        key, val = m.group(1), (m.group(2) or "")
+        if key in seen:
+            problems.append((i, "键重复：%s（第 %d 行已出现过）" % (key, seen[key])))
+        seen[key] = i
+
+        if val[:1] in (">", "|"):
+            block_scalar = True
+            nested_ok = False
+            continue
+        if val == "":
+            nested_ok = True
+            continue
+        nested_ok = False
+
+        if val[0] in ("'", '"'):
+            if len(val) < 2 or val[-1] != val[0]:
+                problems.append((i, "引号未闭合：%s 的值以 %s 开头但没在行尾闭合" % (key, val[0])))
+            continue
+
+        if ": " in val:
+            col = val.index(": ") + 1
+            problems.append((
+                i,
+                "值里有「冒号+空格」（列 %d 附近），YAML 会把它当新键 -> 报 "
+                "mapping values are not allowed in this context。"
+                "改法：去掉冒号改写句子，或用 >- 块标量。别用单引号包（英文撇号会提前闭合）。" % col,
+            ))
+        if val.startswith(("-", "?", ":", "@", "`")):
+            problems.append((i, "值以 YAML 保留字符 %r 开头，需要用引号包起来" % val[0]))
+
+    for k in REQUIRED_KEYS:
+        if k not in seen and k not in nested_seen:
+            problems.append((0, "缺少必需字段：%s（顶层与 metadata: 块内都没有）" % k))
+    return problems
+
+
+def flatten_metadata(data):
+    """把顶层 `metadata:` 块展平到一层，供字段完整性校验使用。
+
+    市场目前同时接受两种写法：
+        display_name: 上司图鉴                 ← 顶层
+        metadata:
+          display_name: 上司图鉴               ← 嵌套
+    两者语义相同，校验时不该区别对待。顶层键优先（冲突时以顶层为准）。
+
+    注意：只影响"查字段"，不回写用户文件、不改变 name 的取值来源。
+    """
+    if not isinstance(data, dict):
+        return data
+    meta = data.get("metadata")
+    if not isinstance(meta, dict):
+        return data
+    flat = dict(meta)
+    for k, v in data.items():
+        if k != "metadata":
+            flat[k] = v
+    return flat
+
+
+def yaml_scan(fm):
+    """优先用 PyYAML 做权威解析；没装则退到内置严格扫描。
+
+    返回 (problems, engine, data)。解析失败时 data 为 None。
+    """
+    try:
+        import yaml  # noqa
+    except ImportError:
+        return fallback_scan(fm), "内置扫描", None
+
+    try:
+        data = yaml.safe_load(fm)
+    except Exception as e:
+        detail = str(e).replace("\n", " | ")[:260]
+        return [(0, "YAML 解析失败：%s" % detail)], "PyYAML", None
+    if not isinstance(data, dict):
+        return [(0, "frontmatter 解析结果不是键值对（mapping）")], "PyYAML", None
+    data = flatten_metadata(data)
+    problems = []
+    for k in REQUIRED_KEYS:
+        if k not in data:
+            problems.append((0, "缺少必需字段：%s" % k))
+    return problems, "PyYAML", data
+
+
+def check_frontmatter(path):
+    """校验每个 SKILL.md 的 frontmatter。返回 (问题列表, 引擎集合)。"""
+    problems = []
+    engines = set()
     for name, txt in iter_texts(path):
         if not name.lower().endswith("skill.md"):
             continue
-        parts = txt.split("---")
-        if len(parts) < 3:
-            problems.append((name, "缺少 frontmatter（文件头两行 --- 之间）"))
+        fm, err = split_frontmatter(txt)
+        if err:
+            problems.append((name, 0, err))
             continue
-        fm = parts[1]
-        m = re.search(r"^name:\s*(.+)$", fm, re.M)
-        val = m.group(1).strip().strip("\"'") if m else ""
-        if not val:
-            problems.append((name, "缺少 name 字段"))
-        elif not KEBAB.match(val):
-            problems.append((name, "name=%r 不合规，必须匹配 ^[a-z0-9]+(-[a-z0-9]+)*$（小写字母/数字/单个连字符，不能有中文或大写）" % val))
-    return problems
+        probs, engine, data = yaml_scan(fm)
+        engines.add(engine)
+        for line_no, msg in probs:
+            problems.append((name, line_no, msg))
+
+        if engine == "PyYAML":
+            if data is None:
+                continue
+            val = str(data.get("name", "")).strip()
+            if not val:
+                problems.append((name, 0, "缺少 name 字段"))
+            elif not KEBAB.match(val):
+                problems.append((name, 0, "name=%r 不合规，必须匹配 ^[a-z0-9]+(-[a-z0-9]+)*$"
+                                        "（小写字母/数字/单个连字符，不能有中文或大写）" % val))
+            missing = [k for k in SUGGESTED_KEYS if k not in data]
+            if missing:
+                print("  WARN [字段] %s 建议补齐市场字段：%s" % (name, "、".join(missing)))
+        else:
+            m = re.search(r"^name:[ \t]*(.+)$", fm, re.M) or \
+                re.search(r"^[ \t]+name:[ \t]*(.+)$", fm, re.M)
+            val = m.group(1).strip().strip("\"'") if m else ""
+            if val and not KEBAB.match(val):
+                problems.append((name, 0, "name=%r 不合规，必须匹配 ^[a-z0-9]+(-[a-z0-9]+)*$" % val))
+            missing = [k for k in SUGGESTED_KEYS if not re.search(r"^\s*%s:" % k, fm, re.M)]
+            if missing:
+                print("  WARN [字段] %s 建议补齐市场字段：%s" % (name, "、".join(missing)))
+    return problems, engines
 
 
 def main():
@@ -154,6 +324,7 @@ def main():
             print("  ERROR 路径不存在")
             failed = True
             continue
+
         hits = scan(t)
         if hits:
             failed = True
@@ -162,13 +333,15 @@ def main():
         else:
             print("  PASS 未命中任何禁词")
 
-        nprob = check_names(t)
-        if nprob:
+        fprob, engines = check_frontmatter(t)
+        if fprob:
             failed = True
-            for nm, msg in nprob:
-                print("  FAIL [命名] %s -> %s" % (nm, msg))
+            for nm, line_no, msg in fprob:
+                loc = ("%s:%d" % (nm, line_no)) if line_no else nm
+                print("  FAIL [frontmatter] %s -> %s" % (loc, msg))
         else:
-            print("  PASS name 为合规 kebab-case（可直接建 GitHub 仓库 / 上架市场）")
+            print("  PASS frontmatter 为合法 YAML、必需字段齐全、name 为合规 kebab-case"
+                  "（校验引擎：%s）" % ("+".join(sorted(engines)) if engines else "无 SKILL.md"))
 
     print("")
     print("结论：" + ("FAIL —— 先改，禁止导出" if failed else "PASS —— 允许导出"))
