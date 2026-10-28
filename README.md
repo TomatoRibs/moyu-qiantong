@@ -8,7 +8,7 @@
 
 ![摸鱼签筒首屏](./assets/preview.png)
 
-一个 57 KB 的单文件 HTML，断网也能玩，手机直接适配——在线链接挂了也不要紧，clone 下来双击 `assets/moyu-qiantong.html` 照样能摇。
+一个 53 KB 的单文件 HTML，断网也能玩，手机直接适配——在线链接挂了也不要紧，clone 下来双击 `assets/moyu-qiantong.html` 照样能摇。
 
 今天要不要摸鱼？你问了自己八遍，还是没答案。
 该不该跑路？想了一整个下午，活一点没干。
