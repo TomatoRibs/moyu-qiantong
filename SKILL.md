@@ -25,7 +25,7 @@ allowed-tools:
 
 ## 这个 Skill 做什么
 
-- **核心产物**：一份单文件 HTML（`assets/quiz.html`），离线双击即可使用，零外部依赖。
+- **核心产物**：一份单文件 HTML（`assets/moyu-qiantong.html`），离线双击即可使用，零外部依赖。
 - **结构要点**：红漆签筒（CSS 手绘 + 22 支竹签）→ 摇签动画（筒身摇晃 → 飞出一签）→ 模态弹层签文卡（不撑开布局）→ 60 支原创签，分 8 档运势（鸿运/顺遂/安稳/小满/佛系/水逆/想跑/玄学）→ 自由抽 / 今日签 双模式 → 集签图鉴（localStorage 进度）→ 本机历史（上限 30 笔，可清空）→ Canvas 生成 750×1420 竖版分享海报（PNG 本地下载）。
 - **数据边界**：全部计算在浏览器端完成，历史与集签进度存 `localStorage`，无任何网络请求，数据不出本机。
 
@@ -36,7 +36,7 @@ allowed-tools:
 
 ## 如何使用（给智能体的工作流）
 
-1. 把 `assets/quiz.html` 复制到用户当前工作区（默认文件名 `quiz.html` 或 `index.html`）。
+1. 把 `assets/moyu-qiantong.html` 复制到用户当前工作区（默认文件名 `moyu-qiantong.html` 或 `index.html`）。
 2. 用 `present_files` 打开预览，让用户直接使用。
 3. 若用户要改签文 / 改配色 / 加减签数 / 换海报版式，在本文件同目录的代码基础上调整（签数改 `SIGNS` 数组即可，页面各处数字为动态 `TOTAL`）。
 
