@@ -4,11 +4,11 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](./LICENSE) [![Single File HTML](https://img.shields.io/badge/Single--File-HTML-orange.svg)](./assets/moyu-qiantong.html) [![WorkBuddy Skill](https://img.shields.io/badge/WorkBuddy-Skill-purple.svg)](./SKILL.md)
 
-**🔗 [在线体验 →](https://tomatoribs.github.io/moyu-qiantong/)**（点开就玩 · 免安装 · 免注册）
+**这是一个 WorkBuddy 技能**——下载装好后，一句话就能生成或重做这一份。只想先看看效果，也可以只打开网页版。
 
 ![摸鱼签筒首屏](./assets/preview.png)
 
-一个 53 KB 的单文件 HTML，断网也能玩，手机直接适配——在线链接挂了也不要紧，clone 下来双击 `assets/moyu-qiantong.html` 照样能摇。
+一个 53 KB 的单文件 HTML，断网也能玩，手机直接适配——clone 下来双击 `assets/moyu-qiantong.html` 就能摇。
 
 今天要不要摸鱼？你问了自己八遍，还是没答案。
 该不该跑路？想了一整个下午，活一点没干。
@@ -17,6 +17,28 @@
 闭上眼睛，想着你的老板（或那点薪水），然后摇一签——让 60 支签替你做主。
 
 **60 支签 · 8 档运势 · 双模式 · 集签图鉴 · 0 上传**
+
+## 怎么装
+
+**方式一：装成 WorkBuddy 技能（推荐）**
+
+下载本仓库（右上角 `Code → Download ZIP`，或用 git），然后在解压出来的目录里执行：
+
+```bash
+git clone https://github.com/TomatoRibs/moyu-qiantong.git
+cd moyu-qiantong
+bash scripts/install_local.sh
+```
+
+装好后技能进入 `~/.workbuddy/skills/moyu-qiantong/`，回到 WorkBuddy 直接说话即可。
+
+WorkBuddy 是一个本地 AI 助手；装成技能后，一句话触发：「做一个带双模式和集签图鉴的摸鱼签筒网页」。
+
+**方式二：只想打开网页版**
+
+1. 双击 `assets/moyu-qiantong.html`（手机可直接打开）。
+2. 摇签——可自由抽，也可切「今日签」看今天的固定结果。
+3. 存竖版海报发给朋友，或慢慢集齐 60 支签的图鉴。
 
 ## 你会摇到什么
 
@@ -70,12 +92,6 @@
 - **我的记录会被发出去吗？** 不会，全部存本机；分享出去的只有你主动保存的海报。
 - **准吗？** 与任何宗教、命理、占卜无关——它的任务不是预测，是把「选哪个」这一分钟还给你。
 
-## 怎么用
-
-1. 点在线体验链接，或双击 `assets/moyu-qiantong.html`（手机可直接打开）。
-2. 摇签——可自由抽，也可切「今日签」看今天的固定结果。
-3. 存竖版海报发给朋友，或慢慢集齐 60 支签的图鉴。
-
 ## 隐私
 
 全部计算与记录都在浏览器本地完成，不联网、不上传。记录只存本机且有上限；清空记录会删掉这个浏览器里保存的全部抽签历史。
@@ -98,14 +114,6 @@
 ## 为什么做这个
 
 「要不要摸鱼」「该不该跑路」这类问题，问谁都不合适，问自己又没答案。签筒能替你做的唯一一件事，是把「选哪个」这一分钟还给你。
-
-## 装成 WorkBuddy 技能（可选）
-
-```bash
-bash scripts/install_local.sh .
-```
-
-WorkBuddy 是一个本地 AI 助手；装成技能后，一句话触发：「做一个带双模式和集签图鉴的摸鱼签筒网页」。
 
 ## 免责声明
 
